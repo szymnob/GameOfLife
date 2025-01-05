@@ -3,15 +3,19 @@ import tkinter as tk
 from threading import Thread
 from tkinter import ttk
 
+from presets import PRESETS
+
 MIN_SPEED = 1
 MAX_SPEED = 100
+
+
 
 class Life:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Game of Life")
 
-        self.grid_size = 20
+        self.grid_size = 30
         self.cell_size = 20
 
         self.running = False
@@ -46,6 +50,13 @@ class Life:
         # iteration label
         self.iteration_label = tk.Label(self.root, text="Iteration: 0")
         self.iteration_label.grid(row=3, column=0, sticky="w")
+
+        #preset choice
+        self.preset_menu = ttk.Combobox(self.root, values=list(PRESETS.keys()), state="readonly")
+        self.preset_menu.set("Select Preset")
+        self.preset_menu.grid(row=1, column=2)
+        self.preset_menu.bind("<<ComboboxSelected>>", self.load_preset)
+
 
         # grid canvas
         self.canvas = tk.Canvas(self.root, width=self.grid_size * self.cell_size,
@@ -102,6 +113,7 @@ class Life:
         self.running = False
 
     def  reset(self):
+        self.running = False
         self.grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
         self.iteration = 0
         self.iteration_label.config(text=f"Iteration: {self.iteration}")
@@ -109,12 +121,33 @@ class Life:
         self.canvas.delete("all")
         self.draw_grid()
 
+    def load_preset(self, event):
+        preset = self.preset_menu.get()
+        self.reset()
+
+        center_x = self.grid_size // 2
+        center_y = self.grid_size // 2
+
+        for x, y in PRESETS[preset]:
+            self.grid[center_y + y][center_x + x] = 1
+        self.redraw_canvas()
+
     def update_speed(self, value):
         self.speed = int(float(value))
 
     def simulation(self):
         while self.running:
             self.iteration += 1
+            added = False
+
+            tab = []
+
+            for x in range(self.grid_size):
+                for y in range(self.grid_size):
+                    if self.grid[y][x] == 1:
+                        tab.append((x,y))
+
+            print(tab)
 
             new_grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
 
@@ -124,14 +157,24 @@ class Life:
 
                     if self.grid[y][x] == 1 and alive in (2, 3):
                         new_grid[y][x] = 1
+                        added = True
+
                     elif self.grid[y][x] == 0 and alive == 3:
                         new_grid[y][x] = 1
+                        added = True
 
             self.grid = new_grid
             self.redraw_canvas()
             self.iteration_label.config(text=f"Iteration: {self.iteration}")
             print(self.speed)
             time.sleep((MAX_SPEED + 1 - self.speed)/ (1.0*MAX_SPEED))
+
+
+
+            if not added:
+                self.running = False
+
+
 
     def count_alive_neighbours(self, x, y):
         count = 0
