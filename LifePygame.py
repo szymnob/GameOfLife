@@ -1,10 +1,12 @@
+import random
+
 import pygame
 import pygame_gui
 from pygame.threads import Thread
 
 from presets import PRESETS
 
-
+GRID_COLOR = (200,200,200)
 
 CELL_SIZE = 20
 CELL_SIZE_MIN = 10
@@ -28,8 +30,9 @@ class Life:
 
 
         self.total_window_width = WINDOW_WIDTH + 200
-        self.grid_cells_number = 30
+        self.grid_cells_number = 32
         self.cell_size = self.calculate_cell_size()
+
 
 
         self.is_running = True
@@ -44,13 +47,17 @@ class Life:
         self.speed = 5
         self.iteration = 0
 
+        self.cell_color_mode = "black"
+        self.cell_colors = []
+        self.set_new_colors()
+
         self.clock = pygame.time.Clock()
         self.manager = pygame_gui.UIManager((WINDOW_WIDTH, WINDOW_HEIGHT))
 
         self.create_ui()
 
     def calculate_cell_size(self):
-        return GRID_SIZE / self.grid_cells_number
+        return GRID_SIZE // self.grid_cells_number
 
     def create_ui(self):
         panel_width = CONTROL_PANEL_SIZE
@@ -126,27 +133,58 @@ class Life:
             anchors={"left": "left", "top": "top", "right": "right", "top_target": self.grid_cells_label}
         )
 
+        self.color_mode_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect((10, 10), label_size),
+            text='Cell Color Mode:', manager=self.manager, container=self.controls_panel,
+            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.grid_cells_slider}
+        )
+
+        self.color_mode_menu = pygame_gui.elements.UIDropDownMenu(
+            options_list=["black", "random", "random_for_new"],
+            starting_option=self.cell_color_mode,
+            relative_rect=pygame.Rect((10, 10), size),
+            manager=self.manager, container=self.controls_panel,
+            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.color_mode_label}
+        )
+
         self.save_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((10, 40), size),
             text='Save', manager=self.manager, container=self.controls_panel,
-            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.grid_cells_slider}
+            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.color_mode_menu}
         )
 
         #iteration label
         self.iteration_label = pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect((10, -40), (-1, -1)),
+            relative_rect=pygame.Rect((10, -40), label_size),
             text=f'Iteration: {self.iteration}',
             manager=self.manager, container=self.controls_panel,
             anchors={"left": "left", "bottom": "bottom", "right": "right"}
         )
 
+    def set_new_colors(self, y = None, x = None, was_alive = False):
+        if self.cell_color_mode == "black" and (y is None or x is None):
+            self.cell_colors = [[(0, 0, 0) for _ in range(self.grid_cells_number)] for _ in range(self.grid_cells_number)]
+        elif self.cell_color_mode == "random" and (y is None or x is None):
+            self.cell_colors = [[(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(self.grid_cells_number)] for _ in range(self.grid_cells_number)]
+        elif self.cell_color_mode == "random_for_new":
+            if y is not None and x is not None:
+                if not was_alive:
+                    self.cell_colors[y][x] = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+                else:
+                    self.cell_colors[y][x] = (0, 0, 0)
+
     def draw_grid(self):
+        #center grid in the middle so margin is the same on all sides, need to be used when calculating click position
+        self.grid_margin = (self.grid_size - self.grid_cells_number * self.cell_size) // 2
+        pygame.draw.rect(self.screen, GRID_COLOR, (0,0, self.grid_size, self.grid_size))
+        color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
         for y in range(self.grid_cells_number):
             for x in range(self.grid_cells_number):
-                color = (0, 0,0) if self.grid[y][x] else (255, 255, 255)
-                pygame.draw.rect(self.screen, color, (x*self.cell_size, y*self.cell_size, self.cell_size, self.cell_size))
-                pygame.draw.rect(self.screen, (200, 200, 200), (x*self.cell_size, y*self.cell_size, self.cell_size, self.cell_size), 1)
+                color = self.cell_colors[y][x] if self.grid[y][x] else GRID_COLOR
+                pygame.draw.rect(self.screen, color, (x*self.cell_size + self.grid_margin, y*self.cell_size + self.grid_margin, self.cell_size, self.cell_size))
 
+                pygame.draw.rect(self.screen, (170, 170, 170), (x*self.cell_size + self.grid_margin, y*self.cell_size + self.grid_margin, self.cell_size, self.cell_size), 1)
     def count_alive_neighbours(self, x, y):
         count = 0
         #left
@@ -193,7 +231,7 @@ class Life:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left click
                 x, y = event.pos
-                grid_x, grid_y = int(x // self.cell_size), int(y // self.cell_size)
+                grid_x, grid_y = int((x - self.grid_margin) // self.cell_size), int((y - self.grid_margin) // self.cell_size)
                 if 0 <= grid_x < self.grid_cells_number and 0 <= grid_y < self.grid_cells_number:
                     self.grid[grid_y][grid_x] = 1 - self.grid[grid_y][grid_x]
 
@@ -210,6 +248,8 @@ class Life:
         elif event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
             if event.ui_element == self.preset_menu:
                 self.load_preset(event.text)
+            elif event.ui_element == self.color_mode_menu:
+                self.cell_color_mode = event.text
 
         elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
             if event.ui_element == self.speed_slider:
@@ -239,6 +279,8 @@ class Life:
         self.cell_size = self.calculate_cell_size()
         self.grid = new_grid
 
+        self.set_new_colors()
+
 
     def simulation(self):
         while self.sim_running:
@@ -253,15 +295,14 @@ class Life:
                 for x in range(self.grid_cells_number):
                     alive = self.count_alive_neighbours(x, y)
 
-                    if self.grid[y][x] == 1 and alive in (2, 3):
+                    if (self.grid[y][x] == 1 and alive in (2, 3)) or (self.grid[y][x] == 0 and alive == 3):
                         new_grid[y][x] = 1
                         added = True
-
-                    elif self.grid[y][x] == 0 and alive == 3:
-                        new_grid[y][x] = 1
-                        added = True
+                        self.set_new_colors(y, x, self.grid[y][x])
 
             self.grid = new_grid
+
+            self.set_new_colors()
 
             if not added:
                 self.sim_running = False
