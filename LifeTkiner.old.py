@@ -142,12 +142,12 @@ class Life:
 
             tab = []
 
-            for x in range(self.grid_size):
-                for y in range(self.grid_size):
-                    if self.grid[y][x] == 1:
-                        tab.append((x,y))
-
-            print(tab)
+            # for x in range(self.grid_size):
+            #     for y in range(self.grid_size):
+            #         if self.grid[y][x] == 1:
+            #             tab.append((x,y))
+            #
+            # print(tab)
 
             new_grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
 
@@ -166,7 +166,6 @@ class Life:
             self.grid = new_grid
             self.redraw_canvas()
             self.iteration_label.config(text=f"Iteration: {self.iteration}")
-            print(self.speed)
             time.sleep((MAX_SPEED + 1 - self.speed)/ (1.0*MAX_SPEED))
 
 
