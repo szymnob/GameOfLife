@@ -4,16 +4,18 @@ from pygame.threads import Thread
 
 from presets import PRESETS
 
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 600
 
-CELL_SIZE = 30
+
+CELL_SIZE = 20
 CELL_SIZE_MIN = 10
 CELL_SIZE_MAX = 50
 
-GRID_SIZE = 20
-GRID_SIZE_MIN = 10
-GRID_SIZE_MAX = 50
+GRID_SIZE = 800
+
+CONTROL_PANEL_SIZE = 200
+
+WINDOW_WIDTH = GRID_SIZE + CONTROL_PANEL_SIZE
+WINDOW_HEIGHT = GRID_SIZE
 
 MIN_SPEED = 1
 MAX_SPEED = 20
@@ -23,18 +25,23 @@ class Life:
         pygame.init()
 
         self.grid_size = GRID_SIZE
-        self.cell_size = CELL_SIZE
+
+
+        self.total_window_width = WINDOW_WIDTH + 200
+        self.grid_cells_number = 30
+        self.cell_size = self.calculate_cell_size()
+
 
         self.is_running = True
 
         self.sim_running = False
 
-        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         pygame.display.set_caption("Game of Life")
 
-        self.grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        self.grid = [[0 for _ in range(self.grid_cells_number)] for _ in range(self.grid_cells_number)]
 
-        self.speed = (MIN_SPEED + MAX_SPEED) // 2
+        self.speed = 5
         self.iteration = 0
 
         self.clock = pygame.time.Clock()
@@ -42,11 +49,14 @@ class Life:
 
         self.create_ui()
 
+    def calculate_cell_size(self):
+        return GRID_SIZE / self.grid_cells_number
+
     def create_ui(self):
-        panel_width = WINDOW_WIDTH - CELL_SIZE * self.grid_size
+        panel_width = CONTROL_PANEL_SIZE
 
         self.controls_panel = pygame_gui.elements.UIPanel(
-            relative_rect=pygame.Rect((CELL_SIZE * self.grid_size, 0), (panel_width, WINDOW_HEIGHT)),
+            relative_rect=pygame.Rect((GRID_SIZE, 0), (panel_width, WINDOW_HEIGHT)),
             manager=self.manager
         )
 
@@ -57,7 +67,7 @@ class Life:
 
         # Add buttons and sliders to the panel
         self.start_button = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((10, 10), size),
+            relative_rect=pygame.Rect((10, 20), size),
             text='Start', manager=self.manager, container=self.controls_panel,
             anchors={"left": "left", "top": "top", "right": "right"}
         )
@@ -75,13 +85,13 @@ class Life:
         )
 
         self.speed_label = pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect((10, 10), label_size),
+            relative_rect=pygame.Rect((10, 20), label_size),
             text='Speed:',  manager=self.manager, container=self.controls_panel,
             anchors={"left": "left", "top": "top", "right": "right", "top_target": self.reset_button}
         )
 
         self.speed_slider = pygame_gui.elements.UIHorizontalSlider(
-            relative_rect=pygame.Rect((10, 20), size),
+            relative_rect=pygame.Rect((10, 10), size),
             start_value=self.speed,
             value_range=(MIN_SPEED, MAX_SPEED),
             manager=self.manager, container=self.controls_panel,
@@ -89,7 +99,7 @@ class Life:
         )
 
         self.preset_label = pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect((10, 10), label_size),
+            relative_rect=pygame.Rect((10, 20), label_size),
             text='Preset:', manager=self.manager, container=self.controls_panel,
             anchors={"left": "left", "top": "top", "right": "right", "top_target": self.speed_slider}
         )
@@ -99,47 +109,40 @@ class Life:
             starting_option='None',
             relative_rect=pygame.Rect((10, 10), size),
             manager=self.manager, container=self.controls_panel,
-            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.speed_slider}
+            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.preset_label}
         )
 
-        self.grid_size_label = pygame_gui.elements.UILabel(
+        self.grid_cells_label = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect((10, 20), label_size),
-            text='Grid Size:', manager=self.manager, container=self.controls_panel,
+            text='Number of Cells:', manager=self.manager, container=self.controls_panel,
             anchors={"left": "left", "top": "top", "right": "right", "top_target": self.preset_menu}
         )
 
-        self.grid_size_slider = pygame_gui.elements.UIHorizontalSlider(
+        self.grid_cells_slider = pygame_gui.elements.UIHorizontalSlider(
             relative_rect=pygame.Rect((10, 10), size),
-            start_value=self.grid_size,
-            value_range=(GRID_SIZE_MIN, GRID_SIZE_MAX),
+            start_value=self.grid_cells_number,
+            value_range=(10, 50),
             manager=self.manager, container=self.controls_panel,
-            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.grid_size_label}
+            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.grid_cells_label}
         )
 
-        self.cell_size_label = pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect((10, 10), label_size),
-            text='Cell Size:', manager=self.manager, container=self.controls_panel,
-            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.grid_size_slider}
+        self.save_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((10, 40), size),
+            text='Save', manager=self.manager, container=self.controls_panel,
+            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.grid_cells_slider}
         )
 
-        self.cell_size_slider = pygame_gui.elements.UIHorizontalSlider(
-            relative_rect=pygame.Rect((10, 10), size),
-            start_value=self.cell_size,
-            value_range=(CELL_SIZE_MIN, CELL_SIZE_MAX),
-            manager=self.manager, container=self.controls_panel,
-            anchors={"left": "left", "top": "top", "right": "right", "top_target": self.cell_size_label}
-        )
-
+        #iteration label
         self.iteration_label = pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect((10, -40), label_size),
+            relative_rect=pygame.Rect((10, -40), (-1, -1)),
             text=f'Iteration: {self.iteration}',
             manager=self.manager, container=self.controls_panel,
             anchors={"left": "left", "bottom": "bottom", "right": "right"}
         )
 
     def draw_grid(self):
-        for y in range(self.grid_size):
-            for x in range(self.grid_size):
+        for y in range(self.grid_cells_number):
+            for x in range(self.grid_cells_number):
                 color = (0, 0,0) if self.grid[y][x] else (255, 255, 255)
                 pygame.draw.rect(self.screen, color, (x*self.cell_size, y*self.cell_size, self.cell_size, self.cell_size))
                 pygame.draw.rect(self.screen, (200, 200, 200), (x*self.cell_size, y*self.cell_size, self.cell_size, self.cell_size), 1)
@@ -150,25 +153,25 @@ class Life:
         if x > 0:
             count += self.grid[y][x-1]
         #right
-        if x < self.grid_size - 1:
+        if x < self.grid_cells_number - 1:
             count += self.grid[y][x+1]
         #top
         if y > 0:
             count += self.grid[y-1][x]
         #bottom
-        if y < self.grid_size - 1:
+        if y < self.grid_cells_number - 1:
             count += self.grid[y+1][x]
         #top left
         if x > 0 and y > 0:
             count += self.grid[y-1][x-1]
         #top right
-        if x < self.grid_size - 1 and y > 0:
+        if x < self.grid_cells_number - 1 and y > 0:
             count += self.grid[y-1][x+1]
         #bottom left
-        if x > 0 and y < self.grid_size - 1:
+        if x > 0 and y < self.grid_cells_number - 1:
             count += self.grid[y+1][x-1]
         #bottom right
-        if x < self.grid_size - 1 and y < self.grid_size - 1:
+        if x < self.grid_cells_number - 1 and y < self.grid_cells_number - 1:
             count += self.grid[y+1][x+1]
 
         return count
@@ -178,7 +181,7 @@ class Life:
 
     def reset(self):
         self.sim_running = False
-        self.grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        self.grid = [[0 for _ in range(self.grid_cells_number)] for _ in range(self.grid_cells_number)]
         self.iteration = 0
         self.update_iteration_label()
 
@@ -190,8 +193,8 @@ class Life:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left click
                 x, y = event.pos
-                grid_x, grid_y = x // CELL_SIZE, y // CELL_SIZE
-                if 0 <= grid_x < self.grid_size and 0 <= grid_y < self.grid_size:
+                grid_x, grid_y = int(x // self.cell_size), int(y // self.cell_size)
+                if 0 <= grid_x < self.grid_cells_number and 0 <= grid_y < self.grid_cells_number:
                     self.grid[grid_y][grid_x] = 1 - self.grid[grid_y][grid_x]
 
         elif event.type == pygame_gui.UI_BUTTON_PRESSED:
@@ -201,6 +204,9 @@ class Life:
                 self.sim_running = False
             elif event.ui_element == self.reset_button:
                 self.reset()
+            elif event.ui_element == self.save_button:
+                self.normalize_and_save()
+
         elif event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
             if event.ui_element == self.preset_menu:
                 self.load_preset(event.text)
@@ -208,24 +214,43 @@ class Life:
         elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
             if event.ui_element == self.speed_slider:
                 self.speed = int(self.speed_slider.get_current_value())
-            elif event.ui_element == self.grid_size_slider:
-                self.grid_size = int(self.grid_size_slider.get_current_value())
-                self.reset()
-            elif event.ui_element == self.cell_size_slider:
-                self.cell_size = int(self.cell_size_slider.get_current_value())
-                self.reset()
+            elif event.ui_element == self.grid_cells_slider:
+                self.scale_grid(int(self.grid_cells_slider.get_current_value()))
+
+    def scale_grid(self, new_cells_number):
+        """Scales the grid while maintaining the current state of the cells"""
+        self.sim_running = False
+
+        offset = new_cells_number//2 - self.grid_cells_number//2
+
+        new_grid = [[0 for _ in range(new_cells_number)] for _ in range(new_cells_number)]
+
+        for y in range(self.grid_cells_number):
+            for x in range(self.grid_cells_number):
+                x_scaled = x + offset
+                y_scaled = y + offset
+                if 0 <= x_scaled < self.grid_cells_number and 0 <= y_scaled < self.grid_cells_number:
+                    try:
+                        new_grid[y_scaled][x_scaled] = self.grid[y][x]
+                    except IndexError:
+                        pass
+
+        self.grid_cells_number = new_cells_number
+        self.cell_size = self.calculate_cell_size()
+        self.grid = new_grid
 
 
     def simulation(self):
         while self.sim_running:
+
             self.iteration += 1
             self.update_iteration_label()
             added = False
 
             new_grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
 
-            for y in range(self.grid_size):
-                for x in range(self.grid_size):
+            for y in range(self.grid_cells_number):
+                for x in range(self.grid_cells_number):
                     alive = self.count_alive_neighbours(x, y)
 
                     if self.grid[y][x] == 1 and alive in (2, 3):
@@ -241,17 +266,21 @@ class Life:
             if not added:
                 self.sim_running = False
 
-            pygame.time.wait(1000 // self.speed)
-            print(self.speed)
+            self.clock.tick(self.speed)
 
     def load_preset(self, preset_name):
         self.reset()
 
-        center_x = self.grid_size // 2
-        center_y = self.grid_size // 2
+        center_x = self.grid_cells_number // 2
+        center_y = self.grid_cells_number // 2
 
         for x, y in PRESETS[preset_name]:
-            self.grid[center_y + y][center_x + x] = 1
+            try:
+                self.grid[center_y + y][center_x + x] = 1
+            except IndexError:
+                self.reset()
+                self.iteration_label.set_text(f'Too small grid size!')
+                return
 
         self.draw_grid()
 
@@ -277,6 +306,27 @@ class Life:
 
         pygame.quit()
 
+    def normalize_and_save(self):
+        """Normalizes the grid to be centered around 0,0 and saves it to a file which can be then added to presets file"""
+        tab = []
+
+        for x in range(self.grid_cells_number):
+            for y in range(self.grid_cells_number):
+                if self.grid[y][x] == 1:
+                    tab.append((x,y))
+
+        x_min = min(p[0] for p in tab)
+        x_max = max(p[0] for p in tab)
+        y_min = min(p[1] for p in tab)
+        y_max = max(p[1] for p in tab)
+
+        center_x = (x_min + x_max) // 2
+        center_y = (y_min + y_max) // 2
+
+        normalized_tab = [(x - center_x, y - center_y) for x, y in tab]
+
+        with open("presets.txt", "a") as file:
+            file.write(f"{normalized_tab}\n")
 
 if __name__ == "__main__":
     life = Life()
