@@ -4,6 +4,7 @@ This repository contains three implementations of Conway's Game of Life, a cellu
 Explore the evolution of the Game of Life across different implementations and enjoy tinkering with patterns and rules!
 
 ![Game of Life Simulation](/pulsar.gif)
+<br>
 ![Game of Life Simulation](/glider_gun.gif)
 
 ## Project Versions
