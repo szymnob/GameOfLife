@@ -1,6 +1,9 @@
 # Conway's Game of Life
 
 This repository contains three implementations of Conway's Game of Life, a cellular automaton devised by the British mathematician John Conway. The Game of Life is a zero-player game, meaning its evolution is determined by its initial state, requiring no further input. The game consists of a grid of cells that follow simple rules to determine whether they live, die, or reproduce in the next iteration.
+Explore the evolution of the Game of Life across different implementations and enjoy tinkering with patterns and rules!
+
+![Game of Life Simulation](/game.gif)
 
 ## Project Versions
 
@@ -42,8 +45,12 @@ This repository contains three implementations of Conway's Game of Life, a cellu
 - Dropdown menus for selecting presets and color modes.
 - Buttons for starting, stopping, and resetting the simulation, as well as saving patterns.
 
+### Saving and Presets
+- The current grid configuration can be **normalized relative to the center** of the grid. 
+- The normalized points are saved to a file as a list of coordinates.
+- These saved configurations can later be added to the `presets.py` file to use as predefined patterns in the simulation.
 
-Explore the evolution of the Game of Life across different implementations and enjoy tinkering with patterns and rules!
+
 
 ## License
 

@@ -75,8 +75,13 @@ class GameOfLife:
         self.iteration = 0
         self.ui.iteration_label.set_text(f'Iteration: {self.iteration}')
 
+    def update_iteration_label(self):
+        self.ui.iteration_label.set_text(f'Iteration: {self.iteration}')
+
     def simulation(self):
         while self.sim_running:
+            self.iteration += 1
+            self.update_iteration_label()
             if not self.grid.simulation(): self.sim_running = False
             self.clock.tick(self.speed)
 
