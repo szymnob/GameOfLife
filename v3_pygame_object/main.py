@@ -18,7 +18,7 @@ class GameOfLife:
 
         self.manager = pygame_gui.UIManager((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.ui = ControlUI(self.manager)
-        self.grid = Grid(WINDOW_WIDTH - CONTROL_PANEL_SIZE, 32)
+        self.grid = Grid(WINDOW_WIDTH - CONTROL_PANEL_SIZE, INITIAL_GRID_CELLS_NUMBER)
 
         self.is_running = True
         self.sim_running = False
@@ -79,6 +79,7 @@ class GameOfLife:
         self.ui.iteration_label.set_text(f'Iteration: {self.iteration}')
 
     def simulation(self):
+        print(self.speed)
         while self.sim_running:
             self.iteration += 1
             self.update_iteration_label()

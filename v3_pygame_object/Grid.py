@@ -54,7 +54,10 @@ class Grid:
 
         for y in range(self.cells_number):
             for x in range(self.cells_number):
-                color = self.cell_colors[y][x] if self.grid[y][x] else GRID_COLOR
+                try:
+                    color = self.cell_colors[y][x] if self.grid[y][x] else GRID_COLOR
+                except IndexError:
+                    color = (0, 0, 0)
                 pygame.draw.rect(screen, color, (x * self.cell_size + grid_margin, y * self.cell_size + grid_margin, self.cell_size, self.cell_size))
                 pygame.draw.rect(screen, (170, 170, 170), (x * self.cell_size + grid_margin, y * self.cell_size + grid_margin, self.cell_size, self.cell_size), 1)
 

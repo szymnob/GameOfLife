@@ -82,7 +82,7 @@ class ControlUI:
         self.grid_cells_slider = pygame_gui.elements.UIHorizontalSlider(
             relative_rect=pygame.Rect((10, 10), size),
             start_value=INITIAL_GRID_CELLS_NUMBER,
-            value_range=(10, 50),
+            value_range=(CELL_SIZE_MIN, CELL_SIZE_MAX),
             manager=self.manager, container=self.controls_panel,
             anchors={"left": "left", "top": "top", "right": "right", "top_target": self.grid_cells_label}
         )
