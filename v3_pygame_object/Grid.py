@@ -58,13 +58,14 @@ class Grid:
                 pygame.draw.rect(screen, color, (x * self.cell_size + grid_margin, y * self.cell_size + grid_margin, self.cell_size, self.cell_size))
                 pygame.draw.rect(screen, (170, 170, 170), (x * self.cell_size + grid_margin, y * self.cell_size + grid_margin, self.cell_size, self.cell_size), 1)
 
-    def update_colors(self, y=None, x=None, was_alive=False):
+    def update_colors(self):
         if self.color_mode == "black":
             self.cell_colors = [[(0, 0, 0) for _ in range(self.cells_number)] for _ in range(self.cells_number)]
-        elif self.color_mode == "random" and y is None and x is None:
+        elif self.color_mode == "random":
             self.cell_colors = [[(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(self.cells_number)] for _ in range(self.cells_number)]
-        elif self.color_mode == "random_for_new" and y is not None and x is not None:
-            self.cell_colors[y][x] = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) if not was_alive else (0, 0, 0)
+
+    def update_random_cell_color(self, x, y, was_alive=False):
+        self.cell_colors[y][x] = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) if not was_alive else (0, 0, 0)
 
     def set_color_mode(self, mode):
         self.color_mode = mode
@@ -82,24 +83,31 @@ class Grid:
 
     def save(self):
         """Normalizes the grid to be centered around 0,0 and saves it to a file which can be then added to presets file"""
-        tab = []
+        points = []
+
+        exists = False
 
         for x in range(self.cells_number):
             for y in range(self.cells_number):
                 if self.grid[y][x] == 1:
-                    tab.append((x, y))
+                    points.append((x, y))
+                    exists = True
 
-        x_min = min(p[0] for p in tab)
-        x_max = max(p[0] for p in tab)
-        y_min = min(p[1] for p in tab)
-        y_max = max(p[1] for p in tab)
+        if not exists:
+            print("No cells to save")
+            return
+
+        x_min = min(p[0] for p in points)
+        x_max = max(p[0] for p in points)
+        y_min = min(p[1] for p in points)
+        y_max = max(p[1] for p in points)
 
         center_x = (x_min + x_max) // 2
         center_y = (y_min + y_max) // 2
 
-        normalized_tab = [(x - center_x, y - center_y) for x, y in tab]
+        normalized_tab = [(x - center_x, y - center_y) for x, y in points]
 
-        with open("presets.txt", "a") as file:
+        with open("current_grid.txt", "a") as file:
             file.write(f"{normalized_tab}\n")
 
         print("Saved")
@@ -116,11 +124,13 @@ class Grid:
                     if (self.grid[y][x] == 1 and alive in (2, 3)) or (self.grid[y][x] == 0 and alive == 3):
                         new_grid[y][x] = 1
                         added = True
-                        self.update_colors(y, x, self.grid[y][x])
+                        if self.color_mode == "random_for_new":
+                            self.update_random_cell_color(x, y, self.grid[y][x])
 
             self.grid = new_grid
 
-            self.update_colors()
+            if self.color_mode != "random_for_new":
+                self.update_colors()
 
             return added
 
